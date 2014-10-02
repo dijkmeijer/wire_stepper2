@@ -14,7 +14,7 @@ AccelStepper stepper(AccelStepper::DRIVER,11, 10); // Defaults to AccelStepper::
 #define MaxAccelerationAdress 4
 #define Positie_1_Adress 8
 #define Positie_2_Adress 12
- 
+
 #define SensorPin1 8
 #define SensorPin2 9
 
@@ -27,7 +27,7 @@ unsigned long tmp;
 
 char buffer[10];
 String value;
-
+char RUNMODE;
 
 void setup()
 {  
@@ -40,7 +40,7 @@ void setup()
   if(MaxAcceleration < 10) MaxAcceleration = 8000;
   Position_1 = read_long_Eeprom(Positie_1_Adress);
   Position_2 = read_long_Eeprom(Positie_2_Adress);
-  
+
   stepper.setMaxSpeed(MaxSpeed);
   stepper.setAcceleration(MaxAcceleration);
   pinMode(SensorPin1, INPUT_PULLUP);
@@ -50,21 +50,28 @@ void setup()
   stepper.setPinsInverted(true, false, false);
   Serial.print("start");
   stepper.moveTo(-600000);
+  RUNMODE = false;
 }
 
 void loop()
 {
   // If at the end of travel go to the other end
-  if(((PINB & 0x03) == 0x03)) 
-  
- // Serial.println(PINB & 0x03);
-    stepper.run();
-  else {
-    stepper.setCurrentPosition(0);
-    stepper.moveTo(10);
-    stepper.run();
+  if (RUNMODE) {
+    stepper.run(); 
   }
-    
+  else {
+    if(((PINB & 0x03) == 0x03)) {
+      // Serial.println(PINB & 0x03);
+      stepper.run(); 
+    }
+    else {
+      stepper.setCurrentPosition(0);
+      stepper.moveTo(10);
+      stepper.run();
+      RUNMODE = true;
+    }
+  }
+
 }
 
 
@@ -79,10 +86,10 @@ void receiveEvent(int howMany)
   }
   memcpy(&tmp, buffer, 4);
   Serial.println(tmp);
-  
+
   Position = Wire.read();
   Serial.print(Position);
-  
+
   if(Position != 0)
     parseCommand();
 
@@ -121,6 +128,7 @@ void parseCommand(){
     break;
   case 3: 
     Serial.println("Reset");
+    RUNMODE=false;
     stepper.moveTo(-6000000);    
     break;
   case 4:
@@ -153,6 +161,8 @@ void parseCommand(){
     break;
   }
 }
+
+
 
 
 
